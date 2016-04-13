@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    style="@style/settingItemWrapperMarker"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <TextView
+        android:id="@+id/title"
+        style="@style/settingTitle"
+        android:text="Some setting title" />
+
+    <TextView
+        android:id="@+id/summary"
+        android:layout_below="@id/title"
+        android:text="Some summary of settings item"
+        style="@style/settingTitleSummary" />
+</RelativeLayout>

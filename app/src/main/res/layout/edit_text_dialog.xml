@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			  android:orientation="vertical"
+			  android:layout_width="fill_parent"
+			  android:layout_height="fill_parent"
+			  android:theme="@style/AppTheme">
+	<EditText
+			android:id="@+id/textView"
+			android:layout_width="match_parent"
+			android:layout_marginTop="@dimen/activity_vertical_margin"
+			android:layout_marginBottom="@dimen/activity_vertical_margin"
+			android:layout_marginLeft="@dimen/activity_horizontal_margin"
+			android:layout_marginRight="@dimen/activity_horizontal_margin"
+			android:padding="6dp"
+			android:textColor="@color/secondary_text_material"
+			android:background="@android:color/transparent"
+			android:layout_height="wrap_content"
+			android:textCursorDrawable="@null"
+			android:cursorVisible="true"
+			android:inputType="textMultiLine"
+			android:ellipsize="none"
+			android:minHeight="200dp"
+			android:minLines="5"
+			android:text="youtube.com\nm.youtube.com\ngooglevideo.com\nappclick.net\npubads.g.doubleclick.net"
+			android:lines="10"
+			android:gravity="top"/>
+
+</LinearLayout>

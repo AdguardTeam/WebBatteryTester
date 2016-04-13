@@ -1,0 +1,17 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">6dp</dimen>
+    <dimen name="activity_vertical_margin">6dp</dimen>
+
+    <!-- Settings view sizes -->
+    <dimen name="settingsItemPaddingRight">8dp</dimen>
+    <dimen name="settingsItemPaddingBottom">15dp</dimen>
+    <dimen name="settingsItemTextMarginLeft">15dp</dimen>
+    <dimen name="settingsItemTextPaddingRight">45dp</dimen>
+    <dimen name="settingsItemTextPaddingLeft">50dp</dimen>
+    <dimen name="settingsItemDescriptionPaddingBottom">3dp</dimen>
+    <dimen name="settingsItemTextPremiumMarginLeft">36dp</dimen>
+    <dimen name="settingsTitleMarginTop">15dp</dimen>
+    <dimen name="settingsTitleTextSize">18sp</dimen>
+    <dimen name="settingsDescriptionTextSize">14sp</dimen>
+</resources>

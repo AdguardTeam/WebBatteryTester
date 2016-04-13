@@ -1,0 +1,123 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <!--<style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        &lt;!&ndash; Customize your theme here. &ndash;&gt;
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>-->
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+
+        <!--   theme UI controls like checkboxes and text fields -->
+        <item name="colorButtonNormal">@color/colorPrimary</item>
+        <item name="android:editTextColor">@color/colorPrimary</item>
+        <item name="android:textColorPrimaryInverse">#e0e0e0</item>
+        <item name="android:textColorSecondary">@color/secondary_text_material</item>
+        <item name="android:colorForeground">#202020</item>
+        <item name="android:textColorPrimary">#202020</item>
+    </style>
+
+    <style name="AlertDialog"  parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccent</item>
+        <!--<item name="background">@color/white</item>
+        <item name="android:background">@color/white</item>-->
+        <item name="android:textColor">@color/common_text</item>
+        <item name="colorControlNormal">@color/colorPrimary</item>
+        <item name="colorControlActivated">@color/colorPrimary</item>
+        <item name="colorButtonNormal">@color/colorPrimary</item>
+        <item name="colorControlHighlight">@color/colorAccent</item>
+    </style>
+
+    <style name="settingItemWrapper">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:paddingRight">@dimen/settingsItemPaddingRight</item>
+        <item name="android:paddingBottom">@dimen/settingsItemPaddingBottom</item>
+    </style>
+
+    <style name="settingItemWrapperMarker" parent="settingItemWrapper">
+        <item name="android:background">@drawable/selectable_background_marker_right</item>
+    </style>
+
+    <style name="settingTitle">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_alignParentTop">true</item>
+        <item name="android:layout_alignParentLeft">true</item>
+        <item name="android:layout_marginTop">@dimen/settingsTitleMarginTop</item>
+        <item name="android:layout_marginLeft">@dimen/settingsItemTextMarginLeft</item>
+        <item name="android:paddingRight">@dimen/settingsItemTextPaddingRight</item>
+        <item name="android:textSize">@dimen/settingsTitleTextSize</item>
+        <item name="android:textColor">@color/common_text_selector</item>
+    </style>
+
+    <style name="settingTitleSummary">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_marginLeft">@dimen/settingsItemTextMarginLeft</item>
+        <item name="android:paddingRight">@dimen/settingsItemTextPaddingRight</item>
+        <item name="android:paddingBottom">@dimen/settingsItemDescriptionPaddingBottom</item>
+        <item name="android:textSize">@dimen/settingsDescriptionTextSize</item>
+        <item name="android:textColor">@color/summary_text_selector</item>
+    </style>
+
+    <!-- Some common helper styles -->
+    <style name="divLine">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@color/gray</item>
+    </style>
+
+    <style name="settingDivLine" parent="divLine">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@color/gray</item>
+    </style>
+
+    <style name="settingsListMenuItemStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/settingsMenuItemTextSize</item>
+        <item name="android:textColor">@color/selectable_text</item>
+        <item name="android:gravity">center_vertical</item>
+       <!-- <item name="android:background">@drawable/selectable_background</item>-->
+        <item name="android:minHeight">?android:attr/listPreferredItemHeight</item>
+        <item name="android:paddingLeft">@dimen/settingsMenuItemPadding</item>
+        <item name="android:paddingRight">@dimen/settingsMenuItemPaddingRight</item>
+    </style>
+
+    <style name="settingsListMenuItemImageStyle">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_alignParentRight">true</item>
+        <item name="android:layout_centerVertical">true</item>
+        <item name="android:src">@drawable/marker_right</item>
+        <item name="android:paddingRight">@dimen/activity_horizontal_margin</item>
+        <item name="android:contentDescription">@string/empty</item>
+    </style>
+
+    <dimen name="settingsMenuItemTextSize">18sp</dimen>
+    <dimen name="settingsMenuItemPadding">16dp</dimen>
+    <dimen name="settingsMenuItemPaddingRight">16dp</dimen>
+    <color name="selectable_text">#202020</color>
+
+    <style name="progressBarParent"  parent="Widget.AppCompat.ProgressBar.Horizontal">
+        <item name="android:color">@color/colorAccent</item>
+        <item name="colorControlNormal">@color/gray</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">16dp</item>
+        <item name="android:layout_marginTop">-8dp</item>
+        <item name="android:layout_marginBottom">4dp</item>
+    </style>
+
+    <style name="progressBar" parent="progressBarParent">
+
+    </style>
+
+</resources>
