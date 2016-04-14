@@ -13,6 +13,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -164,12 +165,13 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                             @Override
                             public void run() {
                                 webView.loadUrl(finalLine);
+                                webView.loadUrl("about:blank");
                             }
                         });
 
                         Thread.sleep(1000);
 
-                        while (webViewClient.isLoading && (System.currentTimeMillis() - loadStartTime) < 15000) {
+                        while (webViewClient.isLoading && (System.currentTimeMillis() - loadStartTime) < 10000) {
                             Thread.sleep(200);
                         }
 
@@ -178,6 +180,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                         curLine++;
                         progressRunnable.setProgress(curLine * 1000 / maxLine);
                         MainActivity.this.runOnUiThread(progressRunnable);
+                        webView.clearView();
                     }
                     // Clearing cache between repeats
                     runOnUiThread(new Runnable() {
@@ -256,19 +259,26 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private class MyWebViewClient extends WebViewClient {
 
         private boolean isLoading = false;
+        private String TAG = "WebViewClient";
+        private long pageLoadStartTime = 0;
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            Log.d(TAG, "shouldOverrideUrlLoading() for " + url);
             return false;
         }
 
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            Log.d(TAG, "onPageStarted() for " + url);
+            pageLoadStartTime = System.currentTimeMillis();
             isLoading = true;
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
+            Log.d(TAG, "onPageFinished() for " + url);
+            Log.d(TAG, "Page load time: " + (System.currentTimeMillis() - pageLoadStartTime));
             isLoading = false;
         }
     }
