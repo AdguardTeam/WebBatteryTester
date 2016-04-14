@@ -56,6 +56,13 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        findViewById(R.id.start_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startClicked(v);
+            }
+        });
+
         progressBar = (ProgressBar) findViewById(R.id.progressPar);
         progressBar.setMax(1000);
 
@@ -165,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                             @Override
                             public void run() {
                                 webView.loadUrl(finalLine);
-                                webView.loadUrl("about:blank");
+                                //webView.loadUrl("about:blank");
                             }
                         });
 
@@ -180,7 +187,6 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                         curLine++;
                         progressRunnable.setProgress(curLine * 1000 / maxLine);
                         MainActivity.this.runOnUiThread(progressRunnable);
-                        webView.clearView();
                     }
                     // Clearing cache between repeats
                     runOnUiThread(new Runnable() {
@@ -292,6 +298,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         @Override
         public void run() {
+            webView.loadUrl("about:blank");
             progressBar.setProgress(progress);
         }
     }
