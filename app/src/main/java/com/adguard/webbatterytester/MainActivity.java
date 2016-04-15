@@ -76,6 +76,26 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         final String dataPath = getApplicationContext().getFilesDir().getAbsolutePath();
         Utils.copyFileFromAssets(this.getApplicationContext(), "test.txt", dataPath + "/test.txt");
+
+        // Test root permissions
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                String startDrain = Utils.readCalculateDrainByRoot();
+                Log.w("Drain", startDrain != null ? startDrain : "No info");
+            }
+        }).start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        unregisterReceiver(batteryInfoReceiver);
+        super.onDestroy();
     }
 
     @Override
@@ -219,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         startBatteryPercent = batteryInfoReceiver.getBatteryPercent();
         startTemperature = batteryInfoReceiver.getTemperature();
         startVoltage = batteryInfoReceiver.getVoltage();
+        float startDrainFloat = Utils.readCalculateDrainByRootFloat();
 
         long startData = Utils.readRemoteData();
 
@@ -230,14 +251,15 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         float finishBatteryPercent = batteryInfoReceiver.getBatteryPercent();
         int finishTemperature = batteryInfoReceiver.getTemperature();
         int finishVoltage = batteryInfoReceiver.getVoltage();
+        float finishDrainFloat = Utils.readCalculateDrainByRootFloat();
 
         long testData = Utils.readRemoteData() - startData;
         final String dataString = Utils.formatTrafficWithDecimal(MainActivity.this, testData);
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Test results");
-        final String message = String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\nBattery: %+.1f%%\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
-                cpuTime, (cpuTime * 10) * 100 / testTime, finishBatteryPercent - startBatteryPercent, finishVoltage - startVoltage, finishTemperature - startTemperature, dataString);
+        final String message = String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\nBattery: %+.1f%% (%.2fmAh)\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
+                cpuTime, (cpuTime * 10) * 100 / testTime, finishBatteryPercent - startBatteryPercent, finishDrainFloat - startDrainFloat, finishVoltage - startVoltage, finishTemperature - startTemperature, dataString);
         builder.setMessage(message);
         builder.setCancelable(false);
         builder.setNeutralButton("Copy & Close", new DialogInterface.OnClickListener() {

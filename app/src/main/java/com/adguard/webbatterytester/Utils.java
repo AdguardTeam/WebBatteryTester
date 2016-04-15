@@ -5,6 +5,7 @@ import android.content.res.AssetManager;
 import android.util.Log;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -30,13 +31,13 @@ public class Utils {
         String trafficFormatted;
 
         if (data < 1024 * 1024) {
-            final float v = (float)data / 1024;
+            final float v = (float) data / 1024;
             trafficFormatted = String.format(context.getString(R.string.traffStatsValueTextViewTextTemplateKb), v);
         } else if (data < 1024 * 1024 * 1024) {
-            final float v = (float)data / (1024 * 1024);
+            final float v = (float) data / (1024 * 1024);
             trafficFormatted = String.format(context.getString(R.string.traffStatsValueTextViewTextTemplateMb), v);
         } else {
-            final float v = (float)data / (1024 * 1024 * 1024);
+            final float v = (float) data / (1024 * 1024 * 1024);
             trafficFormatted = String.format(context.getString(R.string.traffStatsValueTextViewTextTemplateGb), v);
         }
 
@@ -86,7 +87,7 @@ public class Utils {
             String line;
             int currentLine = 0;
             while ((line = reader.readLine()) != null) {
-                Log.d("Line", line);
+                //Log.d("Line", line);
                 if (currentLine == lineNumber) {
                     reader.close();
                     return line;
@@ -98,6 +99,90 @@ public class Utils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static String execute(String command) {
+        StringBuilder output = new StringBuilder();
+        try {
+            Process p = Runtime.getRuntime().exec(command);
+            p.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return output.toString();
+    }
+
+    public static String readCalculatedDrain() {
+        try {
+            Process p = Runtime.getRuntime().exec("dumpsys batterystats");
+            p.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+            boolean found = false;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                //Log.d(TAG, "Line: " + line);
+                if (!found && line.contains("Estimated power use")) {
+                    found = true;
+                } else if (found) {
+                    String[] buf = line.split(", ");
+                    int pos = buf[1].indexOf(": ");
+                    return buf[1].substring(pos + 2);
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String readCalculateDrainByRoot() {
+        String result = null;
+        try {
+            Process p = Runtime.getRuntime().exec("su");
+            DataOutputStream os = new DataOutputStream(p.getOutputStream());
+            os.writeBytes("dumpsys batterystats\n");
+            os.flush();
+            Thread.sleep(1000);
+            //p.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+            boolean found = false;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!found && line.contains("Estimated power use")) {
+                    found = true;
+                } else if (found) {
+                    String[] buf = line.split(", ");
+                    int pos = buf[1].indexOf(": ");
+                    result = buf[1].substring(pos + 2);
+                    break;
+                }
+            }
+            //os.writeBytes("exit\n");
+            //os.flush();
+            p.destroy();
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public static float readCalculateDrainByRootFloat() {
+        final String s = readCalculateDrainByRoot();
+        if (s == null) {
+            return 0f;
+        }
+        return Float.parseFloat(s.replace(',', '.'));
     }
 
     public static long readCpuTime() {
@@ -127,9 +212,9 @@ public class Utils {
             String line;
             long traffic = 0;
             while ((line = reader.readLine()) != null) {
-                Log.d(TAG, "Line read: " + line);
+                //Log.d(TAG, "Line read: " + line);
                 if (line.contains("rmnet_ipa")) {
-                    Log.d(TAG, "Ignoring line: " + line);
+                    //Log.d(TAG, "Ignoring line: " + line);
                     continue;
                 }
                 if (line.contains("wlan") || line.contains("rmnet")) {
@@ -141,12 +226,12 @@ public class Utils {
                         line = line.replace("  ", " ");
                     } while (line.length() < length);
 
-                    Log.d(TAG, "Line replaced:" + line);
+                    //Log.d(TAG, "Line replaced:" + line);
                     final String[] columns = line.split(" ");
                     final long received = Long.parseLong(columns[0]);
                     final long transmitted = Long.parseLong(columns[8]);
                     traffic += received + transmitted;
-                    Log.d(TAG, "Traffic: Received: " + received + " Transmitted: " + traffic + " Sum: " + traffic);
+                    //Log.d(TAG, "Traffic: Received: " + received + " Transmitted: " + traffic + " Sum: " + traffic);
                 }
             }
             reader.close();
