@@ -258,8 +258,11 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Test results");
-        final String message = String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\nBattery: %+.1f%% (%.2fmAh)\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
-                cpuTime, (cpuTime * 10) * 100 / testTime, finishBatteryPercent - startBatteryPercent, finishDrainFloat - startDrainFloat, finishVoltage - startVoltage, finishTemperature - startTemperature, dataString);
+        final String batteryMessage = (finishDrainFloat - startDrainFloat > 0) ?
+                String.format("Battery: %+.1f%% (%.2fmAh)", finishBatteryPercent - startBatteryPercent, finishDrainFloat - startDrainFloat) :
+                String.format("Battery: %+.1f%%", finishBatteryPercent - startBatteryPercent);
+        final String message = String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\n%s\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
+                cpuTime, (cpuTime * 10) * 100 / testTime, batteryMessage, finishVoltage - startVoltage, finishTemperature - startTemperature, dataString);
         builder.setMessage(message);
         builder.setCancelable(false);
         builder.setNeutralButton("Copy & Close", new DialogInterface.OnClickListener() {
