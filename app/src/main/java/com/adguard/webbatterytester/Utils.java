@@ -144,14 +144,14 @@ public class Utils {
         return null;
     }
 
-    public static String readCalculateDrainByRoot() {
-        String result = null;
+    public static String[] readCalculateDrainByRoot() {
+        String[] result = null;
         try {
             Process p = Runtime.getRuntime().exec("su");
             DataOutputStream os = new DataOutputStream(p.getOutputStream());
             os.writeBytes("dumpsys batterystats\n");
             os.flush();
-            Thread.sleep(1000);
+            Thread.sleep(500);
             //p.waitFor();
             BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
 
@@ -161,9 +161,22 @@ public class Utils {
                 if (!found && line.contains("Estimated power use")) {
                     found = true;
                 } else if (found) {
+                    Log.d(TAG, "Line: " + line);
+                    result = new String[2];
                     String[] buf = line.split(", ");
                     int pos = buf[1].indexOf(": ");
-                    result = buf[1].substring(pos + 2);
+                    result[0] = buf[1].substring(pos + 2);
+
+                    pos = buf[2].indexOf(": ");
+                    String actuals[] = buf[2].substring(pos + 2).split("-");
+                    if (actuals.length == 1) {
+                        result[1] = actuals[0];
+                    } else {
+                        float first = Float.parseFloat(actuals[0].replace(',', '.'));
+                        float actualAverage = first + ((Float.parseFloat(actuals[1].replace(',', '.')) - first) / 2);
+                        result[1] = String.format("%.2f", actualAverage);
+                    }
+
                     break;
                 }
             }
@@ -173,16 +186,17 @@ public class Utils {
             reader.close();
         } catch (Exception e) {
             e.printStackTrace();
+            result = null;
         }
         return result;
     }
 
-    public static float readCalculateDrainByRootFloat() {
-        final String s = readCalculateDrainByRoot();
+    public static float[] readCalculateDrainByRootFloat() {
+        final String[] s = readCalculateDrainByRoot();
         if (s == null) {
-            return 0f;
+            return new float[] {0f, 0f};
         }
-        return Float.parseFloat(s.replace(',', '.'));
+        return new float[] {Float.parseFloat(s[0].replace(',', '.')), Float.parseFloat(s[1].replace(',', '.'))};
     }
 
     public static long readCpuTime() {

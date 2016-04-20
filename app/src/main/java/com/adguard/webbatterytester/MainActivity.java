@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -73,6 +74,9 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         webSettings.setJavaScriptEnabled(true);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         webSettings.setLoadsImagesAutomatically(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            webSettings.setMediaPlaybackRequiresUserGesture(true);
+        }
 
         final String dataPath = getApplicationContext().getFilesDir().getAbsolutePath();
         Utils.copyFileFromAssets(this.getApplicationContext(), "test.txt", dataPath + "/test.txt");
@@ -86,8 +90,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                String startDrain = Utils.readCalculateDrainByRoot();
-                Log.w("Drain", startDrain != null ? startDrain : "No info");
+                String startDrain[] = Utils.readCalculateDrainByRoot();
+                Log.w("Drain", startDrain != null ? startDrain[0] + ", actual: " + startDrain[1] : "No info");
             }
         }).start();
     }
@@ -199,10 +203,10 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                         Thread.sleep(1000);
 
                         while (webViewClient.isLoading && (System.currentTimeMillis() - loadStartTime) < 10000) {
-                            Thread.sleep(200);
+                            Thread.sleep(300);
                         }
 
-                        Thread.sleep(1000);
+                        Thread.sleep(5000);
 
                         curLine++;
                         progressRunnable.setProgress(curLine * 1000 / maxLine);
@@ -239,7 +243,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         startBatteryPercent = batteryInfoReceiver.getBatteryPercent();
         startTemperature = batteryInfoReceiver.getTemperature();
         startVoltage = batteryInfoReceiver.getVoltage();
-        float startDrainFloat = Utils.readCalculateDrainByRootFloat();
+        float[] startDrainFloat = Utils.readCalculateDrainByRootFloat();
+        Log.d("MainActivity", "start floats: "+startDrainFloat[0] + ", " + startDrainFloat[1]);
 
         long startData = Utils.readRemoteData();
 
@@ -251,15 +256,17 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         float finishBatteryPercent = batteryInfoReceiver.getBatteryPercent();
         int finishTemperature = batteryInfoReceiver.getTemperature();
         int finishVoltage = batteryInfoReceiver.getVoltage();
-        float finishDrainFloat = Utils.readCalculateDrainByRootFloat();
+        float[] finishDrainFloat = Utils.readCalculateDrainByRootFloat();
+        Log.d("MainActivity", "finish floats: "+finishDrainFloat[0] + ", " + finishDrainFloat[1]);
 
         long testData = Utils.readRemoteData() - startData;
         final String dataString = Utils.formatTrafficWithDecimal(MainActivity.this, testData);
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Test results");
-        final String batteryMessage = (finishDrainFloat - startDrainFloat > 0) ?
-                String.format("Battery: %+.1f%% (%.2fmAh)", finishBatteryPercent - startBatteryPercent, finishDrainFloat - startDrainFloat) :
+        final String batteryMessage = (finishDrainFloat[0] > 0 || startDrainFloat[0] > 0) ?
+                String.format("Battery: %+.1f%% (%.2fmAh, actual: %.2fmAh)",
+                        finishBatteryPercent - startBatteryPercent, finishDrainFloat[0] - startDrainFloat[0], finishDrainFloat[1] - startDrainFloat[1]) :
                 String.format("Battery: %+.1f%%", finishBatteryPercent - startBatteryPercent);
         final String message = String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\n%s\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
                 cpuTime, (cpuTime * 10) * 100 / testTime, batteryMessage, finishVoltage - startVoltage, finishTemperature - startTemperature, dataString);
@@ -323,6 +330,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         @Override
         public void run() {
+            webView.stopLoading();
             webView.loadUrl("about:blank");
             progressBar.setProgress(progress);
         }
