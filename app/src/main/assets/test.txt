@@ -19,8 +19,8 @@ drudgereport.com
 engadget.com
 espn.go.com
 fivethirtyeight.com
-forbes.com
 foxnews.com
+gizmodo.com
 huffingtonpost.com
 latimes.com
 lifehacker.com
@@ -45,6 +45,6 @@ usatoday.com
 washingtonpost.com
 weather.com
 weather.gov
-wired.com
 wsj.com
 wunderground.com
+zdnet.com
