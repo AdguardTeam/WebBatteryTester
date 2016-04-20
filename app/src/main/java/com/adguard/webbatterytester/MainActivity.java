@@ -20,6 +20,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             webSettings.setMediaPlaybackRequiresUserGesture(true);
         }
+        clearCookies();
 
         final String dataPath = getApplicationContext().getFilesDir().getAbsolutePath();
         Utils.copyFileFromAssets(this.getApplicationContext(), "test.txt", dataPath + "/test.txt");
@@ -150,6 +152,13 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private void enableActionButtons(boolean enable) {
         findViewById(R.id.settings).setEnabled(enable);
         findViewById(R.id.help).setEnabled(enable);
+    }
+
+    private static void clearCookies() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            CookieManager cookieManager = CookieManager.getInstance();
+            cookieManager.removeAllCookies(null);
+        }
     }
 
     public long loadSitesInWebView() {
@@ -332,6 +341,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         public void run() {
             webView.stopLoading();
             webView.loadUrl("about:blank");
+            webView.clearHistory();
+            clearCookies();
             progressBar.setProgress(progress);
         }
     }
