@@ -215,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                             Thread.sleep(300);
                         }
 
-                        Thread.sleep(5000);
+                        Thread.sleep(2000);
 
                         curLine++;
                         progressRunnable.setProgress(curLine * 1000 / maxLine);
