@@ -1,34 +1,28 @@
 package com.adguard.webbatterytester;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.graphics.Bitmap;
+import android.net.http.SslError;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.Window;
-import android.webkit.CookieManager;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.util.Pair;
+import android.view.*;
+import android.webkit.*;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+@SuppressWarnings("ConstantConditions")
 public class MainActivity extends AppCompatActivity implements Runnable {
 
+    private final static String TAG = "WebBatteryTester";
     private WebView webView;
     private Thread thread = null;
     private static int startVoltage = 0;
@@ -38,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private MyWebViewClient webViewClient;
     private ProgressBar progressBar;
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_PROGRESS);
@@ -73,11 +68,10 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         webView.setWebViewClient(webViewClient);
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
+        webSettings.setMediaPlaybackRequiresUserGesture(true);
+        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         webSettings.setLoadsImagesAutomatically(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            webSettings.setMediaPlaybackRequiresUserGesture(true);
-        }
         clearCookies();
 
         final String dataPath = getApplicationContext().getFilesDir().getAbsolutePath();
@@ -90,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    // Ignore
                 }
                 String startDrain[] = Utils.readCalculateDrainByRoot();
                 Log.w("Drain", startDrain != null ? startDrain[0] + ", actual: " + startDrain[1] : "No info");
@@ -143,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         } else {
             enableActionButtons(false);
             webView.clearCache(true);
+            webViewClient.reset();
             ((AppCompatButton) findViewById(R.id.start_btn)).setText(R.string.stop_test);
             thread = new Thread(this);
             thread.start();
@@ -154,6 +149,9 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         findViewById(R.id.help).setEnabled(enable);
     }
 
+    /**
+     * Clears cookies
+     */
     private static void clearCookies() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CookieManager cookieManager = CookieManager.getInstance();
@@ -161,22 +159,22 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         }
     }
 
-    public long loadSitesInWebView() {
-        if (Thread.currentThread().isInterrupted())
-            return 0;
-
-        long startTime = Utils.readCpuTime();
+    /**
+     * Does the actual testing: loads websites in a webview
+     */
+    private void loadSitesInWebView() {
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
 
         try {
             String domainsList = Utils.loadDomains(MainActivity.this);
             domainsList = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).getString(SettingsActivity.PREF_DOMAIN_LIST, domainsList);
-            int repeatCount = PreferenceManager.getDefaultSharedPreferences(this).getInt(SettingsActivity.PREF_REPEAT_COUNT, 1);
-
+            int repeatCount = PreferenceManager.getDefaultSharedPreferences(this).getInt(SettingsActivity.PREF_REPEAT_COUNT, 5);
             ProgressRunnable progressRunnable = new ProgressRunnable();
 
-
             if (domainsList != null) {
-                String[] lines = domainsList.split("\\n");
+                String[] domains = domainsList.split("\\n");
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -186,55 +184,41 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 });
 
                 int curLine = 0;
-                int maxLine = lines.length * repeatCount;
+                int maxLine = domains.length * repeatCount;
                 for (int i = 0; i < repeatCount; i++) {
-                    for (String line : lines) {
-                        if (Thread.currentThread().isInterrupted())
+                    for (String domainName : domains) {
+                        if (Thread.currentThread().isInterrupted()) {
                             break;
-                        line = line.trim();
-                        if (line.isEmpty())
+                        }
+                        domainName = domainName.trim();
+                        if (domainName.isEmpty()) {
                             continue;
-
-                        if (!line.toLowerCase().startsWith("http://") && !line.toLowerCase().startsWith("https://")) {
-                            line = "http://" + line;
+                        }
+                        if (!domainName.toLowerCase().startsWith("http://") && !domainName.toLowerCase().startsWith("https://")) {
+                            domainName = "http://" + domainName;
                         }
 
-                        long loadStartTime = System.currentTimeMillis();
-                        final String finalLine = line;
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                webView.loadUrl(finalLine);
-                                //webView.loadUrl("about:blank");
-                            }
-                        });
-
-                        Thread.sleep(1000);
-
-                        while (webViewClient.isLoading && (System.currentTimeMillis() - loadStartTime) < 10000) {
-                            Thread.sleep(300);
-                        }
-
-                        Thread.sleep(2000);
+                        loadDomain(domainName);
 
                         curLine++;
                         progressRunnable.setProgress(curLine * 1000 / maxLine);
                         MainActivity.this.runOnUiThread(progressRunnable);
                     }
+
                     // Clearing cache between repeats
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            webView.clearCache(true);
                             Toast.makeText(MainActivity.this, "Repeating test...", Toast.LENGTH_LONG).show();
                         }
                     });
-                    // Waiting for Runnable to work out
+
+                    // Waiting for Runnable to finish it's work
                     Thread.sleep(1000);
                 }
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Log.d(TAG, "Thread was interrupted: " + e.getMessage());
         }
 
         runOnUiThread(new Runnable() {
@@ -243,8 +227,66 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 progressBar.setVisibility(View.GONE);
             }
         });
+    }
 
-        return Utils.readCpuTime() - startTime;
+    /**
+     * Loads domain in a web view
+     *
+     * @param domainName Domain to load
+     * @throws InterruptedException
+     */
+    private void loadDomain(final String domainName) throws InterruptedException {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                webView.loadUrl(domainName);
+            }
+        });
+
+        final int MIN_DOMAIN_LOAD_TIME = 10 * 1000; // spend minimum 10 seconds on a website
+        final int MAX_DOMAIN_LOAD_TIME = 60 * 1000; // 30 seconds limit (just in case)
+        long startTime = System.currentTimeMillis();
+        Pair<Long, Long> startData = Utils.readDataUsage();
+
+        // Give it some time to start loading
+        long elapsed = 0;
+        while ((!isPageLoaded() || elapsed < MIN_DOMAIN_LOAD_TIME) &&
+                elapsed < MAX_DOMAIN_LOAD_TIME) {
+            Thread.sleep(500);
+            elapsed = System.currentTimeMillis() - startTime;
+        }
+
+        Pair<Long, Long> endData = Utils.readDataUsage();
+        String pageSize = Utils.formatTrafficWithDecimal(this, endData.first + endData.second - startData.first - startData.second);
+
+        //noinspection StringBufferReplaceableByString
+        StringBuilder sb = new StringBuilder();
+        sb.append("Finished loading of ");
+        sb.append(domainName);
+        sb.append(" (");
+        sb.append(webViewClient.pageTitle);
+        sb.append(")\n");
+        // Page code load time
+        sb.append("Page load time (onPageFinished): ");
+        sb.append((webViewClient.pageLoadFinishTime - webViewClient.pageLoadStartTime));
+        sb.append(" ms\n");
+        // Page code load time
+        sb.append("Page load time (document.readyState): ");
+        sb.append((System.currentTimeMillis() - webViewClient.pageLoadStartTime));
+        sb.append(" ms\n");
+        // Page code load time
+        sb.append("Page size: ");
+        sb.append(pageSize);
+        sb.append(" \n");
+        // Requests count
+        sb.append("Requests count: ");
+        sb.append(webViewClient.pageRequestsCount);
+        sb.append("\n");
+        // Requests blocked
+        sb.append("Requests blocked: ");
+        sb.append(webViewClient.pageRequestsBlocked);
+
+        Log.d(TAG, sb.toString());
     }
 
     @Override
@@ -253,32 +295,55 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         startTemperature = batteryInfoReceiver.getTemperature();
         startVoltage = batteryInfoReceiver.getVoltage();
         float[] startDrainFloat = Utils.readCalculateDrainByRootFloat();
-        Log.d("MainActivity", "start floats: "+startDrainFloat[0] + ", " + startDrainFloat[1]);
+        Log.d("MainActivity", "start floats: " + startDrainFloat[0] + ", " + startDrainFloat[1]);
 
-        long startData = Utils.readRemoteData();
+        Pair<Long, Long> startData = Utils.readDataUsage();
+        long startCpuTime = Utils.readCpuTime();
 
-        long startTime = System.currentTimeMillis();
-        long cpuTime = 0;
-        cpuTime += loadSitesInWebView();
-        long testTime = System.currentTimeMillis() - startTime;
+        // Do the test
+        loadSitesInWebView();
 
-        float finishBatteryPercent = batteryInfoReceiver.getBatteryPercent();
-        int finishTemperature = batteryInfoReceiver.getTemperature();
-        int finishVoltage = batteryInfoReceiver.getVoltage();
+//        float finishBatteryPercent = batteryInfoReceiver.getBatteryPercent();
+//        int finishTemperature = batteryInfoReceiver.getTemperature();
+//        int finishVoltage = batteryInfoReceiver.getVoltage();
         float[] finishDrainFloat = Utils.readCalculateDrainByRootFloat();
-        Log.d("MainActivity", "finish floats: "+finishDrainFloat[0] + ", " + finishDrainFloat[1]);
+        Log.d("MainActivity", "finish floats: " + finishDrainFloat[0] + ", " + finishDrainFloat[1]);
 
-        long testData = Utils.readRemoteData() - startData;
-        final String dataString = Utils.formatTrafficWithDecimal(MainActivity.this, testData);
+        Pair<Long, Long> endData = Utils.readDataUsage();
+        long bytesReceived = endData.first - startData.first;
+        long bytesSent = endData.second - startData.second;
+        long cpuTime = Utils.readCpuTime() - startCpuTime;
+        String bytesReceivedStr = Utils.formatTrafficWithDecimal(MainActivity.this, bytesReceived);
+        String bytesSentStr = Utils.formatTrafficWithDecimal(MainActivity.this, bytesSent);
+        String dataUsage = Utils.formatTrafficWithDecimal(MainActivity.this, bytesSent + bytesReceived);
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Test results");
-        final String batteryMessage = (finishDrainFloat[0] > 0 || startDrainFloat[0] > 0) ?
-                String.format("Battery: %+.1f%% (%.2fmAh, actual: %.2fmAh)",
-                        finishBatteryPercent - startBatteryPercent, finishDrainFloat[0] - startDrainFloat[0], finishDrainFloat[1] - startDrainFloat[1]) :
-                String.format("Battery: %+.1f%%", finishBatteryPercent - startBatteryPercent);
-        final String message = String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\n%s\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
-                cpuTime, (cpuTime * 10) * 100 / testTime, batteryMessage, finishVoltage - startVoltage, finishTemperature - startTemperature, dataString);
+//        final String batteryMessage = (finishDrainFloat[0] > 0 || startDrainFloat[0] > 0) ?
+//                String.format("Battery: %+.1f%% (%.2fmAh, actual: %.2fmAh)",
+//                        finishBatteryPercent - startBatteryPercent, finishDrainFloat[0] - startDrainFloat[0], finishDrainFloat[1] - startDrainFloat[1]) :
+//                String.format("Battery: %+.1f%%", finishBatteryPercent - startBatteryPercent);
+
+        //noinspection StringBufferReplaceableByString
+        StringBuilder sb = new StringBuilder();
+        sb.append("CPU stats\n");
+        sb.append(String.format("Cpu time: %d (USER_HZ)\n", cpuTime));
+        sb.append("\n");
+        sb.append("Data usage\n");
+        sb.append(String.format("Sent: %s\n", bytesSentStr));
+        sb.append(String.format("Received: %s\n", bytesReceivedStr));
+        sb.append(String.format("Overall: %s\n", dataUsage));
+
+        sb.append("\n");
+        sb.append("Ad blocking\n");
+
+        sb.append(String.format("Web requests attempts: %d\n", webViewClient.requestsCount));
+        sb.append(String.format("Web requests processed: %d\n", webViewClient.requestsCount - webViewClient.blockedCount));
+        sb.append(String.format("Web requests blocked: %d (%d%%)\n", webViewClient.blockedCount, webViewClient.blockedCount * 100 / webViewClient.requestsCount));
+
+        final String message = sb.toString();
+//                String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\n%s\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
+//                cpuTime, (cpuTime * 10) * 100 / testTime, batteryMessage, finishVoltage - startVoltage, finishTemperature - startTemperature, dataUsage);
         builder.setMessage(message);
         builder.setCancelable(false);
         builder.setNeutralButton("Copy & Close", new DialogInterface.OnClickListener() {
@@ -303,11 +368,66 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         thread = null;
     }
 
+    /**
+     * Checks if webview has finished loading the page
+     *
+     * @return true if document.readyState is "complete"
+     */
+    private boolean isPageLoaded() {
+        final String[] result = new String[1];
+        final Object waitLock = new Object();
+
+        synchronized (waitLock) {
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    webView.evaluateJavascript("(function() { return document.readyState; })();", new ValueCallback<String>() {
+                        @Override
+                        public void onReceiveValue(String value) {
+                            result[0] = value;
+                            synchronized (waitLock) {
+                                waitLock.notifyAll();
+                            }
+                        }
+                    });
+                }
+            });
+
+            try {
+                waitLock.wait();
+            } catch (InterruptedException e) {
+                // Ignore
+            }
+        }
+
+        return result.length == 1 &&
+                result[0] != null &&
+                result[0].contains("complete") &&
+                webViewClient.pageLoadFinishTime > 0;
+    }
+
     private class MyWebViewClient extends WebViewClient {
 
-        private boolean isLoading = false;
-        private String TAG = "WebViewClient";
         private long pageLoadStartTime = 0;
+        private long pageLoadFinishTime = 0;
+        private int pageRequestsCount = 0;
+        private int pageRequestsBlocked = 0;
+        private String pageTitle;
+
+        private int requestsCount = 0;
+        private int blockedCount = 0;
+
+        /**
+         * Resets global stats
+         */
+        void reset() {
+            requestsCount = 0;
+            blockedCount = 0;
+            pageLoadStartTime = 0;
+            pageLoadFinishTime = 0;
+            pageTitle = null;
+        }
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -319,21 +439,63 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             Log.d(TAG, "onPageStarted() for " + url);
             pageLoadStartTime = System.currentTimeMillis();
-            isLoading = true;
+            pageLoadFinishTime = 0;
+            pageRequestsCount = 0;
+            pageRequestsBlocked = 0;
+            pageTitle = null;
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
             Log.d(TAG, "onPageFinished() for " + url);
-            Log.d(TAG, "Page load time: " + (System.currentTimeMillis() - pageLoadStartTime));
-            isLoading = false;
+            pageTitle = view.getTitle();
+            pageLoadFinishTime = System.currentTimeMillis();
+        }
+
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+
+            String url = request.getUrl().toString();
+            Log.d(TAG, "shouldInterceptRequest() for " + url);
+
+            if (!url.contains("injections.adguard.com")) {
+                // `injections.adguard.com` is a virtual domain used for loading cosmetic filters
+                // there is no real web request done for it
+                requestsCount++;
+                pageRequestsCount++;
+            }
+            return super.shouldInterceptRequest(view, request);
+        }
+
+        @Override
+        public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+            Log.d(TAG, "onReceivedError() for " + request.getUrl());
+            blockedCount++;
+            pageRequestsBlocked++;
+            super.onReceivedError(view, request, error);
+        }
+
+        @Override
+        public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+            Log.d(TAG, "onReceivedHttpError() for " + request.getUrl());
+            blockedCount++;
+            pageRequestsBlocked++;
+            super.onReceivedHttpError(view, request, errorResponse);
+        }
+
+        @Override
+        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            Log.d(TAG, "onReceivedSslError() for " + error.getUrl());
+            blockedCount++;
+            pageRequestsBlocked++;
+            super.onReceivedSslError(view, handler, error);
         }
     }
 
     private class ProgressRunnable implements Runnable {
         int progress = 0;
 
-        public void setProgress(int progress) {
+        void setProgress(int progress) {
             this.progress = progress;
         }
 
@@ -344,6 +506,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             webView.clearHistory();
             clearCookies();
             progressBar.setProgress(progress);
+            webView.clearSslPreferences();
         }
     }
 }

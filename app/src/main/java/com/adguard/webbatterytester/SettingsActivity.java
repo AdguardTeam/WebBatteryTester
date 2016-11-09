@@ -44,7 +44,7 @@ public class SettingsActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(SettingsActivity.this).edit();
                 final String domains = Utils.loadDomains(SettingsActivity.this);
                 editor.putString(PREF_DOMAIN_LIST, domains);
-                editor.putInt(PREF_REPEAT_COUNT, 1);
+                editor.putInt(PREF_REPEAT_COUNT, 5);
                 editor.commit();
             }
         });
@@ -67,7 +67,7 @@ public class SettingsActivity extends AppCompatActivity {
         group.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final int repeatCount = PreferenceManager.getDefaultSharedPreferences(SettingsActivity.this).getInt(PREF_REPEAT_COUNT, 1);
+                final int repeatCount = PreferenceManager.getDefaultSharedPreferences(SettingsActivity.this).getInt(PREF_REPEAT_COUNT, 5);
                 showRepeatDialog(repeatCount, getString(R.string.dialog_title_repeat_count));
             }
         });
