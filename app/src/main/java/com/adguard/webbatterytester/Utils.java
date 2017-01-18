@@ -12,6 +12,8 @@ class Utils {
 
     private static final String TAG = "Utils";
 
+
+
     /**
      * Formats traffic value.
      *

@@ -2,7 +2,11 @@ package com.adguard.webbatterytester;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.content.*;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.BatteryManager;
@@ -14,10 +18,21 @@ import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.util.Pair;
-import android.view.*;
-import android.webkit.*;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.Window;
+import android.webkit.CookieManager;
+import android.webkit.SslErrorHandler;
+import android.webkit.ValueCallback;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -471,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
             if (!url.contains("injections.adguard.com")) {
                 // `injections.adguard.com` is a virtual domain used for loading cosmetic filters
-                // there is no real web request done for it
+                // actually, there is no real web request done
                 requestsCount++;
                 pageRequestsCount++;
             }
