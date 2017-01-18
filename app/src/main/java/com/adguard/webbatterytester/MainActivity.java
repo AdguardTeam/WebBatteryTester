@@ -19,6 +19,9 @@ import android.webkit.*;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SuppressWarnings("ConstantConditions")
 public class MainActivity extends AppCompatActivity implements Runnable {
 
@@ -160,6 +163,37 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     }
 
     /**
+     * @return List of domains to test
+     */
+    private List<String> getTestDomains() {
+        String domainsList = Utils.loadDomains(MainActivity.this);
+        domainsList = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).getString(SettingsActivity.PREF_DOMAIN_LIST, domainsList);
+        int repeatCount = PreferenceManager.getDefaultSharedPreferences(this).getInt(SettingsActivity.PREF_REPEAT_COUNT, 5);
+
+        if (domainsList == null) {
+            return null;
+        }
+
+        String[] domains = domainsList.split("\\n");
+        List<String> testDomains = new ArrayList<>();
+        for (String domainName : domains) {
+            domainName = domainName.trim();
+
+            if (!domainName.isEmpty()) {
+                if (!domainName.toLowerCase().startsWith("http://") && !domainName.toLowerCase().startsWith("https://")) {
+                    domainName = "http://" + domainName;
+                }
+
+                for (int i = 0; i < repeatCount; i++) {
+                    testDomains.add(domainName);
+                }
+            }
+        }
+
+        return testDomains;
+    }
+
+    /**
      * Does the actual testing: loads websites in a webview
      */
     private void loadSitesInWebView() {
@@ -168,55 +202,32 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         }
 
         try {
-            String domainsList = Utils.loadDomains(MainActivity.this);
-            domainsList = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).getString(SettingsActivity.PREF_DOMAIN_LIST, domainsList);
-            int repeatCount = PreferenceManager.getDefaultSharedPreferences(this).getInt(SettingsActivity.PREF_REPEAT_COUNT, 5);
+            List<String> testDomains = getTestDomains();
+
             ProgressRunnable progressRunnable = new ProgressRunnable();
-
-            if (domainsList != null) {
-                String[] domains = domainsList.split("\\n");
-                MainActivity.this.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressBar.setVisibility(View.VISIBLE);
-                        progressBar.setProgress(0);
-                    }
-                });
-
-                int curLine = 0;
-                int maxLine = domains.length * repeatCount;
-                for (int i = 0; i < repeatCount; i++) {
-                    for (String domainName : domains) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            break;
-                        }
-                        domainName = domainName.trim();
-                        if (domainName.isEmpty()) {
-                            continue;
-                        }
-                        if (!domainName.toLowerCase().startsWith("http://") && !domainName.toLowerCase().startsWith("https://")) {
-                            domainName = "http://" + domainName;
-                        }
-
-                        loadDomain(domainName);
-
-                        curLine++;
-                        progressRunnable.setProgress(curLine * 1000 / maxLine);
-                        MainActivity.this.runOnUiThread(progressRunnable);
-                    }
-
-                    // Clearing cache between repeats
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(MainActivity.this, "Repeating test...", Toast.LENGTH_LONG).show();
-                        }
-                    });
-
-                    // Waiting for Runnable to finish it's work
-                    Thread.sleep(1000);
+            MainActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    progressBar.setVisibility(View.VISIBLE);
+                    progressBar.setProgress(0);
                 }
+            });
+
+            int curLine = 0;
+            int maxLine = testDomains.size();
+            for (String domainName : testDomains) {
+                if (Thread.currentThread().isInterrupted()) {
+                    break;
+                }
+                loadDomain(domainName);
+
+                curLine++;
+                progressRunnable.setProgress(curLine * 1000 / maxLine);
+                MainActivity.this.runOnUiThread(progressRunnable);
             }
+
+            // Waiting for Runnable to finish it's work
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             Log.d(TAG, "Thread was interrupted: " + e.getMessage());
         }
