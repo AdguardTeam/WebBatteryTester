@@ -329,47 +329,13 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         // Do the test
         loadSitesInWebView();
 
-//        float finishBatteryPercent = batteryInfoReceiver.getBatteryPercent();
-//        int finishTemperature = batteryInfoReceiver.getTemperature();
-//        int finishVoltage = batteryInfoReceiver.getVoltage();
         float[] finishDrainFloat = Utils.readCalculateDrainByRootFloat();
         Log.d("MainActivity", "finish floats: " + finishDrainFloat[0] + ", " + finishDrainFloat[1]);
 
-        Pair<Long, Long> endData = Utils.readDataUsage();
-        long bytesReceived = endData.first - startData.first;
-        long bytesSent = endData.second - startData.second;
-        long cpuTime = Utils.readCpuTime() - startCpuTime;
-        String bytesReceivedStr = Utils.formatTrafficWithDecimal(MainActivity.this, bytesReceived);
-        String bytesSentStr = Utils.formatTrafficWithDecimal(MainActivity.this, bytesSent);
-        String dataUsage = Utils.formatTrafficWithDecimal(MainActivity.this, bytesSent + bytesReceived);
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Test results");
-//        final String batteryMessage = (finishDrainFloat[0] > 0 || startDrainFloat[0] > 0) ?
-//                String.format("Battery: %+.1f%% (%.2fmAh, actual: %.2fmAh)",
-//                        finishBatteryPercent - startBatteryPercent, finishDrainFloat[0] - startDrainFloat[0], finishDrainFloat[1] - startDrainFloat[1]) :
-//                String.format("Battery: %+.1f%%", finishBatteryPercent - startBatteryPercent);
-
-        //noinspection StringBufferReplaceableByString
-        StringBuilder sb = new StringBuilder();
-        sb.append("CPU stats\n");
-        sb.append(String.format("Cpu time: %d (USER_HZ)\n", cpuTime));
-        sb.append("\n");
-        sb.append("Data usage\n");
-        sb.append(String.format("Sent: %s\n", bytesSentStr));
-        sb.append(String.format("Received: %s\n", bytesReceivedStr));
-        sb.append(String.format("Overall: %s\n", dataUsage));
-
-        sb.append("\n");
-        sb.append("Ad blocking\n");
-
-        sb.append(String.format("Web requests attempts: %d\n", webViewClient.requestsCount));
-        sb.append(String.format("Web requests processed: %d\n", webViewClient.requestsCount - webViewClient.blockedCount));
-        sb.append(String.format("Web requests blocked: %d (%d%%)\n", webViewClient.blockedCount, webViewClient.blockedCount * 100 / webViewClient.requestsCount));
-
-        final String message = sb.toString();
-//                String.format("Cpu time: %d (USER_HZ)\nLoad: %d%% (divide by cpu-cores)\n%s\nVoltage: %+dmV\nTemperature: %+d°C\nBytes transmitted: %s",
-//                cpuTime, (cpuTime * 10) * 100 / testTime, batteryMessage, finishVoltage - startVoltage, finishTemperature - startTemperature, dataUsage);
+        final String message = createResultMessage(startData, startCpuTime);
         builder.setMessage(message);
         builder.setCancelable(false);
         builder.setNeutralButton("Copy & Close", new DialogInterface.OnClickListener() {
@@ -392,6 +358,42 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         });
 
         thread = null;
+    }
+
+    private String createResultMessage(Pair<Long, Long> startData, long startCpuTime) {
+        Pair<Long, Long> endData = Utils.readDataUsage();
+        long bytesReceived = endData.first - startData.first;
+        long bytesSent = endData.second - startData.second;
+        long cpuTime = Utils.readCpuTime() - startCpuTime;
+        String bytesReceivedStr = Utils.formatTrafficWithDecimal(MainActivity.this, bytesReceived);
+        String bytesSentStr = Utils.formatTrafficWithDecimal(MainActivity.this, bytesSent);
+        String dataUsage = Utils.formatTrafficWithDecimal(MainActivity.this, bytesSent + bytesReceived);
+
+        //noinspection StringBufferReplaceableByString
+        StringBuilder sb = new StringBuilder();
+        sb.append("## CPU stats\n");
+        sb.append(String.format("Cpu time: %d (USER_HZ)\n", cpuTime));
+        sb.append("\n");
+        sb.append("## Data usage\n");
+        sb.append(String.format("Sent: %s\n", bytesSentStr));
+        sb.append(String.format("Received: %s\n", bytesReceivedStr));
+        sb.append(String.format("Overall: %s\n", dataUsage));
+
+        sb.append("\n");
+        sb.append("## Ad blocking\n");
+
+        sb.append(String.format("Web requests attempts: %d\n", webViewClient.requestsCount));
+        sb.append(String.format("Web requests processed: %d\n", webViewClient.requestsCount - webViewClient.blockedCount));
+        sb.append(String.format("Web requests blocked: %d (%d%%)\n", webViewClient.blockedCount, webViewClient.blockedCount * 100 / webViewClient.requestsCount));
+
+        sb.append("\n");
+        sb.append("## Privacy\n");
+
+        sb.append(String.format("Third-party requests attempts: %d\n", webViewClient.thirdPartyRequestsCount));
+        sb.append(String.format("Third-party requests processed: %d\n", webViewClient.thirdPartyRequestsCount - webViewClient.blockedThirdPartyRequestsCount));
+        sb.append(String.format("Third-party requests blocked: %d (%d%%)\n", webViewClient.blockedThirdPartyRequestsCount, webViewClient.blockedThirdPartyRequestsCount * 100 / webViewClient.thirdPartyRequestsCount));
+
+        return sb.toString();
     }
 
     /**
@@ -435,14 +437,19 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
     private class MyWebViewClient extends WebViewClient {
 
+        // Per-page statistics
         private long pageLoadStartTime = 0;
         private long pageLoadFinishTime = 0;
         private int pageRequestsCount = 0;
         private int pageRequestsBlocked = 0;
         private String pageTitle;
+        private String pageUrl;
 
+        // Total statistics
         private int requestsCount = 0;
         private int blockedCount = 0;
+        private int thirdPartyRequestsCount = 0;
+        private int blockedThirdPartyRequestsCount = 0;
 
         /**
          * Resets global stats
@@ -450,9 +457,21 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         void reset() {
             requestsCount = 0;
             blockedCount = 0;
-            pageLoadStartTime = 0;
+            thirdPartyRequestsCount = 0;
+            blockedThirdPartyRequestsCount = 0;
+            resetPage();
+        }
+
+        /**
+         * Resets page stats
+         */
+        void resetPage() {
+            pageLoadStartTime = System.currentTimeMillis();
             pageLoadFinishTime = 0;
+            pageRequestsCount = 0;
+            pageRequestsBlocked = 0;
             pageTitle = null;
+            pageUrl = null;
         }
 
         @Override
@@ -464,11 +483,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             Log.d(TAG, "onPageStarted() for " + url);
-            pageLoadStartTime = System.currentTimeMillis();
-            pageLoadFinishTime = 0;
-            pageRequestsCount = 0;
-            pageRequestsBlocked = 0;
-            pageTitle = null;
+            resetPage();
+            pageUrl = url;
         }
 
         @Override
@@ -489,6 +505,10 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 // actually, there is no real web request done
                 requestsCount++;
                 pageRequestsCount++;
+
+                if (Utils.isThirdPartyRequest(url, pageUrl)) {
+                    thirdPartyRequestsCount++;
+                }
             }
             return super.shouldInterceptRequest(view, request);
         }
@@ -498,6 +518,11 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             Log.d(TAG, "onReceivedError() for " + request.getUrl());
             blockedCount++;
             pageRequestsBlocked++;
+
+            if (Utils.isThirdPartyRequest(request.getUrl().toString(), pageUrl)) {
+                blockedThirdPartyRequestsCount++;
+            }
+
             super.onReceivedError(view, request, error);
         }
 
@@ -506,6 +531,11 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             Log.d(TAG, "onReceivedHttpError() for " + request.getUrl());
             blockedCount++;
             pageRequestsBlocked++;
+
+            if (Utils.isThirdPartyRequest(request.getUrl().toString(), pageUrl)) {
+                blockedThirdPartyRequestsCount++;
+            }
+
             super.onReceivedHttpError(view, request, errorResponse);
         }
 
@@ -514,6 +544,11 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             Log.d(TAG, "onReceivedSslError() for " + error.getUrl());
             blockedCount++;
             pageRequestsBlocked++;
+
+            if (Utils.isThirdPartyRequest(error.getUrl(), pageUrl)) {
+                blockedThirdPartyRequestsCount++;
+            }
+
             super.onReceivedSslError(view, handler, error);
         }
     }

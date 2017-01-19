@@ -2,6 +2,7 @@ package com.adguard.webbatterytester;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.net.Uri;
 import android.util.Log;
 import android.util.Pair;
 
@@ -12,7 +13,71 @@ class Utils {
 
     private static final String TAG = "Utils";
 
+    /**
+     * Extracts host name from an URL
+     *
+     * @param url URL
+     * @return host name
+     */
+    static String getHost(String url) {
+        try {
+            if (url == null || url.isEmpty()) {
+                return null;
+            }
 
+            int firstIdx = url.indexOf("//");
+            if (firstIdx == -1) {
+                return null;
+            }
+            int nextSlashIdx = url.indexOf("/", firstIdx + 2);
+            int startParamsIdx = url.indexOf("?", firstIdx + 2);
+            int colonIdx = url.indexOf(":", firstIdx + 2);
+
+            int lastIdx = nextSlashIdx;
+            if (startParamsIdx > 0 && (startParamsIdx < nextSlashIdx || lastIdx == -1)) {
+                lastIdx = startParamsIdx;
+            }
+
+            if (colonIdx > 0 && (colonIdx < lastIdx || lastIdx == -1)) {
+                lastIdx = colonIdx;
+            }
+
+            String hostName = lastIdx == -1 ? url.substring(firstIdx + 2) : url.substring(firstIdx + 2, lastIdx);
+            if (hostName.startsWith("www.")) {
+                // Crop www
+                hostName = hostName.substring("www.".length());
+            }
+
+            return hostName;
+        } catch (Exception ex) {
+            Log.e(TAG, "Cannot extract hostname from " + url, ex);
+            return null;
+        }
+    }
+
+    /**
+     * Checks if request is third party or not
+     *
+     * @param url     URL
+     * @param pageUrl Page URL
+     * @return true if request is third party
+     */
+    static boolean isThirdPartyRequest(String url, String pageUrl) {
+
+        String requestHost = getHost(url);
+        String pageHost = getHost(pageUrl);
+
+        if (pageHost == null || requestHost == null) {
+            return true;
+        }
+
+        //noinspection RedundantIfStatement
+        if (requestHost.equals(pageHost) || requestHost.endsWith("." + pageHost)) {
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * Formats traffic value.
