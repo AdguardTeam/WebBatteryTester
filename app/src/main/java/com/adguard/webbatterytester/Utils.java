@@ -5,6 +5,8 @@ import android.content.res.AssetManager;
 import android.util.Log;
 import android.util.Pair;
 
+import com.google.common.net.InternetDomainName;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -74,16 +76,17 @@ class Utils {
         String requestHost = getHost(url);
         String pageHost = getHost(pageUrl);
 
+        //noinspection SimplifiableIfStatement
         if (pageHost == null || requestHost == null) {
             return true;
         }
 
-        //noinspection RedundantIfStatement
-        if (requestHost.equals(pageHost) || requestHost.endsWith("." + pageHost)) {
-            return false;
-        }
+        InternetDomainName requestDomain = InternetDomainName.from(requestHost).topPrivateDomain();
+        InternetDomainName pageDomain = InternetDomainName.from(pageHost).topPrivateDomain();
 
-        return true;
+        return !requestDomain.equals(pageDomain) &&
+                // For instance, arstechnica.net shouldn't be considered a third party for arstechnica.com
+                !requestDomain.parts().get(0).equals(pageDomain.parts().get(0));
     }
 
     /**
