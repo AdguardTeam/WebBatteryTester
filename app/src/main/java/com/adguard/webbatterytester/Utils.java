@@ -2,11 +2,18 @@ package com.adguard.webbatterytester;
 
 import android.content.Context;
 import android.content.res.AssetManager;
-import android.net.Uri;
 import android.util.Log;
 import android.util.Pair;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 class Utils {
@@ -116,13 +123,16 @@ class Utils {
                 is = am.open(filename);
 
                 File file = new File(filepath);
-                file.createNewFile();           // create new file
+                if (!file.createNewFile()) {
+                    throw new IOException("Cannot create file " + filepath);
+                }
                 os = new FileOutputStream(file);
 
                 byte[] buffer = new byte[1024];
                 int length;
-                while ((length = is.read(buffer)) > 0)
+                while ((length = is.read(buffer)) > 0) {
                     os.write(buffer, 0, length);
+                }
             } finally {
                 if (os != null) {
                     os.flush();
@@ -132,72 +142,11 @@ class Utils {
                     is.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Cannot copy file from assets: " + filepath, e);
             return false;
         }
 
         return true;
-    }
-
-    /**
-     * @return Estimated power use via dumpsys
-     */
-    static String[] readCalculateDrainByRoot() {
-        String[] result = null;
-        try {
-            Process p = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(p.getOutputStream());
-            os.writeBytes("dumpsys batterystats\n");
-            os.flush();
-            Thread.sleep(500);
-            //p.waitFor();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-
-            boolean found = false;
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (!found && line.contains("Estimated power use")) {
-                    found = true;
-                } else if (found) {
-                    Log.d(TAG, "Line: " + line);
-                    result = new String[2];
-                    String[] buf = line.split(", ");
-                    int pos = buf[1].indexOf(": ");
-                    result[0] = buf[1].substring(pos + 2);
-
-                    pos = buf[2].indexOf(": ");
-                    String actuals[] = buf[2].substring(pos + 2).split("-");
-                    if (actuals.length == 1) {
-                        result[1] = actuals[0];
-                    } else {
-                        float first = Float.parseFloat(actuals[0].replace(',', '.'));
-                        float actualAverage = first + ((Float.parseFloat(actuals[1].replace(',', '.')) - first) / 2);
-                        result[1] = String.format("%.2f", actualAverage);
-                    }
-
-                    break;
-                }
-            }
-            //os.writeBytes("exit\n");
-            //os.flush();
-            p.destroy();
-            reader.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            result = null;
-        }
-        return result;
-    }
-
-    /**
-     * @return Estimated power use via dumpsys
-     */
-    static float[] readCalculateDrainByRootFloat() {
-        final String[] s = readCalculateDrainByRoot();
-        if (s == null) {
-            return new float[]{0f, 0f};
-        }
-        return new float[]{Float.parseFloat(s[0].replace(',', '.')), Float.parseFloat(s[1].replace(',', '.'))};
     }
 
     /**

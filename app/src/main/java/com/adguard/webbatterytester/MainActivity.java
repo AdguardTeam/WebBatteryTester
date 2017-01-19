@@ -94,20 +94,6 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
         final String dataPath = getApplicationContext().getFilesDir().getAbsolutePath();
         Utils.copyFileFromAssets(this.getApplicationContext(), "test.txt", dataPath + "/test.txt");
-
-        // Test root permissions
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    // Ignore
-                }
-                String startDrain[] = Utils.readCalculateDrainByRoot();
-                Log.w("Drain", startDrain != null ? startDrain[0] + ", actual: " + startDrain[1] : "No info");
-            }
-        }).start();
     }
 
     @Override
@@ -320,18 +306,12 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         startBatteryPercent = batteryInfoReceiver.getBatteryPercent();
         startTemperature = batteryInfoReceiver.getTemperature();
         startVoltage = batteryInfoReceiver.getVoltage();
-        float[] startDrainFloat = Utils.readCalculateDrainByRootFloat();
-        Log.d("MainActivity", "start floats: " + startDrainFloat[0] + ", " + startDrainFloat[1]);
 
         Pair<Long, Long> startData = Utils.readDataUsage();
         long startCpuTime = Utils.readCpuTime();
 
         // Do the test
         loadSitesInWebView();
-
-        float[] finishDrainFloat = Utils.readCalculateDrainByRootFloat();
-        Log.d("MainActivity", "finish floats: " + finishDrainFloat[0] + ", " + finishDrainFloat[1]);
-
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Test results");
@@ -405,6 +385,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         final String[] result = new String[1];
         final Object waitLock = new Object();
 
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (waitLock) {
 
             runOnUiThread(new Runnable() {
@@ -494,15 +475,21 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             pageLoadFinishTime = System.currentTimeMillis();
         }
 
+        private boolean isValidWebRequest(String url) {
+            return !url.startsWith("data:") &&
+                    !url.startsWith("blob:") &&
+                    // `injections.adguard.com` is a virtual domain used for loading cosmetic filters
+                    // actually, there is no real web request done
+                    !url.contains("injections.adguard.com");
+        }
+
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 
             String url = request.getUrl().toString();
             Log.d(TAG, "shouldInterceptRequest() for " + url);
 
-            if (!url.contains("injections.adguard.com")) {
-                // `injections.adguard.com` is a virtual domain used for loading cosmetic filters
-                // actually, there is no real web request done
+            if (isValidWebRequest(url)) {
                 requestsCount++;
                 pageRequestsCount++;
 
