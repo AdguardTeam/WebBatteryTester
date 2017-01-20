@@ -81,8 +81,15 @@ class Utils {
             return true;
         }
 
-        InternetDomainName requestDomain = InternetDomainName.from(requestHost).topPrivateDomain();
-        InternetDomainName pageDomain = InternetDomainName.from(pageHost).topPrivateDomain();
+
+        InternetDomainName requestDomain = InternetDomainName.from(requestHost);
+        if (!requestDomain.isPublicSuffix()) {
+            requestDomain = requestDomain.topPrivateDomain();
+        }
+        InternetDomainName pageDomain = InternetDomainName.from(pageHost);
+        if (!pageDomain.isPublicSuffix()) {
+            pageDomain = requestDomain.topPrivateDomain();
+        }
 
         return !requestDomain.equals(pageDomain) &&
                 // For instance, arstechnica.net shouldn't be considered a third party for arstechnica.com
