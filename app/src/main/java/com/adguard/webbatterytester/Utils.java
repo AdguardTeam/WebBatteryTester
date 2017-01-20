@@ -126,9 +126,7 @@ class Utils {
                 is = am.open(filename);
 
                 File file = new File(filepath);
-                if (!file.createNewFile()) {
-                    throw new IOException("Cannot create file " + filepath);
-                }
+                file.createNewFile();
                 os = new FileOutputStream(file);
 
                 byte[] buffer = new byte[1024];
