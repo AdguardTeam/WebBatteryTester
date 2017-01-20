@@ -83,11 +83,11 @@ class Utils {
 
 
         InternetDomainName requestDomain = InternetDomainName.from(requestHost);
-        if (!requestDomain.isPublicSuffix()) {
+        if (requestDomain.isUnderPublicSuffix()) {
             requestDomain = requestDomain.topPrivateDomain();
         }
         InternetDomainName pageDomain = InternetDomainName.from(pageHost);
-        if (!pageDomain.isPublicSuffix()) {
+        if (pageDomain.isUnderPublicSuffix()) {
             pageDomain = requestDomain.topPrivateDomain();
         }
 
