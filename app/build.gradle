@@ -8,8 +8,8 @@ android {
         applicationId "com.adguard.webbatterytester"
         minSdkVersion 21
         targetSdkVersion 23
-        versionCode 1
-        versionName "1.10"
+        versionCode 1021
+        versionName "1.21"
     }
     buildTypes {
         release {
