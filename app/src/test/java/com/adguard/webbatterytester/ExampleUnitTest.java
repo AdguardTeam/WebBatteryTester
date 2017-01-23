@@ -13,6 +13,9 @@ public class ExampleUnitTest {
 
     @Test
     public void testInternetDomainName() {
-        System.out.print(InternetDomainName.from("google.com").parts().get(0));
+        InternetDomainName pageDomain = InternetDomainName.from("s3.amazonaws.com");
+        if (pageDomain.isUnderPublicSuffix()) {
+            pageDomain = pageDomain.topPrivateDomain();
+        }
     }
 }

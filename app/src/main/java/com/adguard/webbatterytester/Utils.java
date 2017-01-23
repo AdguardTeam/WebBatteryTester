@@ -88,7 +88,7 @@ class Utils {
         }
         InternetDomainName pageDomain = InternetDomainName.from(pageHost);
         if (pageDomain.isUnderPublicSuffix()) {
-            pageDomain = requestDomain.topPrivateDomain();
+            pageDomain = pageDomain.topPrivateDomain();
         }
 
         return !requestDomain.equals(pageDomain) &&
