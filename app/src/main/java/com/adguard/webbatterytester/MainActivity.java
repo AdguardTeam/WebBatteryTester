@@ -53,6 +53,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "Creating MainActivity");
+
         requestWindowFeature(Window.FEATURE_PROGRESS);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -98,6 +100,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
     @Override
     protected void onDestroy() {
+        Log.d(TAG, "Destroying MainActivity");
+
         unregisterReceiver(batteryInfoReceiver);
         super.onDestroy();
     }
@@ -133,6 +137,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     }
 
     public void startClicked(View view) {
+        Log.d(TAG, "Starting test");
+
         findViewById(R.id.banner).setVisibility(View.GONE);
         if (thread != null) {
             thread.interrupt();
@@ -303,6 +309,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
 
     @Override
     public void run() {
+        Log.d(TAG, "Preparing to load the test websites");
+
         startBatteryPercent = batteryInfoReceiver.getBatteryPercent();
         startTemperature = batteryInfoReceiver.getTemperature();
         startVoltage = batteryInfoReceiver.getVoltage();
@@ -327,6 +335,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                 dialog.dismiss();
             }
         });
+        Log.d(TAG, "Test is finished, let's show the test results");
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -480,7 +489,8 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                     !url.startsWith("blob:") &&
                     // `injections.adguard.com` is a virtual domain used for loading cosmetic filters
                     // actually, there is no real web request done
-                    !url.contains("injections.adguard.com");
+                    !url.contains("injections.adguard.com") &&
+                    !url.contains("local.adguard.com");
         }
 
         @Override

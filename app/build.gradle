@@ -6,10 +6,10 @@ android {
 
     defaultConfig {
         applicationId "com.adguard.webbatterytester"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 23
-        versionCode 1022
-        versionName "1.22"
+        versionCode 1023
+        versionName "1.23"
     }
     buildTypes {
         release {
