@@ -175,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     private List<String> getTestDomains() {
         String domainsList = Utils.loadDomains(MainActivity.this);
         domainsList = PreferenceManager.getDefaultSharedPreferences(MainActivity.this).getString(SettingsActivity.PREF_DOMAIN_LIST, domainsList);
-        int repeatCount = PreferenceManager.getDefaultSharedPreferences(this).getInt(SettingsActivity.PREF_REPEAT_COUNT, 5);
+        int repeatCount = PreferenceManager.getDefaultSharedPreferences(this).getInt(SettingsActivity.PREF_REPEAT_COUNT, 1);
 
         if (domainsList == null) {
             return null;
